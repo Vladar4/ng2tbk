@@ -18,6 +18,7 @@ if game.init(GameDim.w, GameDim.h, title = GameTitle,
   game.minSize = (GameDim.w, GameDim.h)
   game.centrify()
   loadData()
+  colliderOutline = true
   #TODO config
   # Scenes
   introScene = newIntroScene()

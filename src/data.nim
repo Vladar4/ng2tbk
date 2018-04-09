@@ -20,6 +20,14 @@ const
   GameDim*: Dim = (640, 360)
   WindowDim* = GameDim * 2
   DefaultFont* = "data/fnt/Luxembourg_1910.ttf"
+  Framerate* = 1/12
+  CharacterOffset* = 60
+  CharacterOffset2* = CharacterOffset * 2
+
+
+type
+  ControlScheme* = object
+    a*, b*: GeneralInput
 
 
 var
@@ -28,6 +36,10 @@ var
   gfxData*: Assets[TextureGraphic]
   sfxData*: Assets[Sound]
   musData*: Assets[Music]
+  player1key* = ControlScheme(
+    a: GeneralInput(kind: giKeyboard, keyboard: GeneralInputKeyboard(key: ScancodeX)),
+    b: GeneralInput(kind: giKeyboard, keyboard: GeneralInputKeyboard(key: ScancodeZ))
+  )
 
 
 proc loadData*() =
@@ -36,11 +48,9 @@ proc loadData*() =
   defaultFont = newTrueTypeFont()
   if not defaultFont.load(DefaultFont, 32):
     write stdout, "ERROR: Can't load font: ", DefaultFont
-  # GFX TODO
-  #[
+  # GFX
   gfxData = newAssets[TextureGraphic]("data/gfx",
     proc(file: string): TextureGraphic = newTextureGraphic(file))
-  ]#
   # SFX TODO
   #[
   sfxData = newAssets[TextureGraphic]("data/sfx",

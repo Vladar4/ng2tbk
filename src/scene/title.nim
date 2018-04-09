@@ -9,13 +9,15 @@ import
     tween,
     types,
   ],
-  ../data
+  ../data,
+  ../character
 
 
 type
   TitleScene = ref object of Scene
     titleText: TextGraphic
     title: Entity
+    player: Character
 
 
 proc init*(scene: TitleScene) =
@@ -30,6 +32,12 @@ proc init*(scene: TitleScene) =
   scene.title.pos = (GameDim.w div 2, 32)
   scene.add scene.title
 
+  # player
+  scene.player = newCharacter gfxData["player"]
+  scene.player.control = ckPlayer1
+  scene.player.pos = GameDim / 2
+  scene.add scene.player
+
 
 proc free*(scene: TitleScene) =
   discard
@@ -42,11 +50,6 @@ method show*(scene: TitleScene) =
 proc newTitleScene*(): TitleScene =
   new result, free
   init result
-
-
-method event*(scene: TitleScene, e: Event) =
-  if e.kind in {KeyDown, MouseButtonDown}:
-    discard
 
 
 method update*(scene: TitleScene, elapsed: float) =
