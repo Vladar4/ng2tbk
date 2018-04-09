@@ -19,7 +19,6 @@ type
 
   Character* = ref object of Entity
     control*: ControlKind
-    left*: bool # false - right, true - left
 
 
 proc init*(character: Character, graphic: TextureGraphic) =
@@ -28,9 +27,9 @@ proc init*(character: Character, graphic: TextureGraphic) =
   character.graphic = graphic
   character.initSprite((180, 120))
   discard character.addAnimation(
-    "right", toSeq(0..7), Framerate)
+    "forward", toSeq(0..7), Framerate)
   discard character.addAnimation(
-    "left", toSeq(0..7), Framerate, flip = Flip.horizontal)
+    "backward", toSeq(7..0), Framerate)
 
   # collider
   let c = newGroupCollider character
@@ -51,10 +50,10 @@ proc newCharacter*(graphic: TextureGraphic): Character =
 
 
 proc characterAnimEnd(character: Entity, index: int) =
-  if index == character.animationIndex("right"):
+  if index == character.animationIndex("forward"):
     character.pos.x += CharacterOffset
-  elif index == character.animationIndex("left"):
-    character.pos.x -= CharacterOffset
+  elif index == character.animationIndex("backward"):
+    character.play("forward", 0)
 
 
 method update*(character: Character, elapsed: float) =
@@ -65,15 +64,10 @@ method update*(character: Character, elapsed: float) =
     of ckNone: discard
     of ckPlayer1:
       if player1key.a.down:
-        if character.left: character.pos.x += CharacterOffset
-        character.colliderOffset CharacterOffset
-        character.play("right", 1, callback = characterAnimEnd)
-        character.left = false
+        character.play("forward", 1, callback = characterAnimEnd)
       if player1key.b.down:
-        if not character.left: character.pos.x -= CharacterOffset
-        character.colliderOffset CharacterOffset2
-        character.play("left", 1, callback = characterAnimEnd)
-        character.left = true
+        character.pos.x -= CharacterOffset
+        character.play("backward", 1, callback = characterAnimEnd)
       discard
     of ckPlayer2:
       #TODO
