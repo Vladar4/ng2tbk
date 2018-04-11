@@ -23,34 +23,54 @@ type
     wBackward
 
   Character* = ref object of Entity
+    mirrored: bool
     control*: ControlKind
     walking*: WalkingKind
     keyBuffer*: KeyBuffer
 
 
-proc init*(character: Character, graphic: TextureGraphic) =
+proc init*(character: Character, graphic: TextureGraphic, mirrored = false) =
   character.initEntity()
   character.tags.add "character"
   character.graphic = graphic
+
+  character.mirrored = mirrored
+  if mirrored:
+    character.flip = Flip.horizontal
+
   character.initSprite((180, 120))
   discard character.addAnimation(
-    "forward", toSeq(0..7), Framerate)
+    "idle", toSeq(0..7), Framerate)
   discard character.addAnimation(
-    "backward", toSeq(7..0), Framerate)
+    "forward", toSeq(8..15), Framerate)
   discard character.addAnimation(
-    "low_block_1", toSeq(8..11), Framerate)
+    "backward", toSeq(15..8), Framerate)
   discard character.addAnimation(
-    "low_block_2", toSeq(12..15), Framerate)
+    "low_block_1", toSeq(16..19), Framerate)
   discard character.addAnimation(
-    "low_attack_1", @[8,8,9,9,10,10] & toSeq(16..19), Framerate / 2)
+    "low_block_2", toSeq(20..23), Framerate)
   discard character.addAnimation(
-    "low_attack_2", toSeq(20..23), Framerate)
+    "low_attack_1", @[16,16,17,17,18,18] & toSeq(24..27), Framerate / 2)
+  discard character.addAnimation(
+    "low_attack_2", toSeq(28..31), Framerate)
+  discard character.addAnimation(
+    "high_block_1", toSeq(32..35), Framerate)
+  discard character.addAnimation(
+    "high_block_2", toSeq(36..39), Framerate)
+  discard character.addAnimation(
+    "high_attack_1", @[32,32,33,33,34,34] & toSeq(40..43), Framerate / 2)
+  discard character.addAnimation(
+    "high_attack_2", toSeq(44..47), Framerate)
 
   # collider
   let c = newGroupCollider character
   character.collider = c
-  c.list.add newBoxCollider(
-    character, (CharacterOffset, 60), (CharacterOffset, 120))
+  if mirrored:
+    c.list.add newBoxCollider(
+      character, (CharacterOffset * 2, 60), (CharacterOffset, 120))
+  else:
+    c.list.add newBoxCollider(
+      character, (CharacterOffset, 60), (CharacterOffset, 120))
 
   character.keyBuffer = @[]
 
@@ -61,23 +81,51 @@ proc colliderOffset(character: Entity, x: float) =
     i.pos.x = x
 ]#
 
-proc newCharacter*(graphic: TextureGraphic): Character =
+proc newCharacter*(graphic: TextureGraphic, mirrored = false): Character =
   new result
-  result.init graphic
+  result.init(graphic, mirrored)
 
 
 proc characterAnimEnd(character: Entity, index: int) =
   if index == character.animationIndex("forward"):
-    character.pos.x += CharacterOffset
+    if Character(character).mirrored:
+      character.pos.x -= CharacterOffset
+    else:
+      character.pos.x += CharacterOffset
   elif index == character.animationIndex("backward"):
     discard
+  # LOW BLOCK
   elif index == character.animationIndex("low_block_1"):
     character.play("low_block_2", 1, callback = characterAnimEnd)
+  # LOW ATTACK
   elif index == character.animationIndex("low_attack_1"):
     character.play("low_attack_2", 1, callback = characterAnimEnd)
+  # HIGH BLOCK
+  elif index == character.animationIndex("high_block_1"):
+    character.play("high_block_2", 1, callback = characterAnimEnd)
+  # HIGH ATTACK
+  elif index == character.animationIndex("high_attack_1"):
+    character.play("high_attack_2", 1, callback = characterAnimEnd)
 
   if not character.sprite.playing:
-    character.play("forward", 0)
+    character.play("idle", 0)
+
+
+proc walk(character: Character, back = false) =
+  # Backward
+  if back:
+    if character.mirrored:
+      character.walking = wBackward
+      character.pos.x += CharacterOffset
+      character.play("backward", 1, callback = characterAnimEnd)
+    else:
+      character.walking = wBackward
+      character.pos.x -= CharacterOffset
+      character.play("backward", 1, callback = characterAnimEnd)
+  # Forward
+  else:
+    character.walking = wForward
+    character.play("forward", 1, callback = characterAnimEnd)
 
 
 method update*(character: Character, elapsed: float) =
@@ -87,14 +135,11 @@ method update*(character: Character, elapsed: float) =
   while cmd != c_idle:
     case cmd:
     of c_forward_start:
-      character.walking = wForward
-      character.play("forward", 1, callback = characterAnimEnd)
+      character.walk()
     of c_forward_stop:
       character.walking = wNone
     of c_backward_start:
-      character.walking = wBackward
-      character.pos.x -= CharacterOffset
-      character.play("backward", 1, callback = characterAnimEnd)
+      character.walk(true)
     of c_backward_stop:
       character.walking = wNone
     of c_low_block:
@@ -103,16 +148,23 @@ method update*(character: Character, elapsed: float) =
     of c_low_attack:
       character.walking = wNone
       character.play("low_attack_1", 1, callback = characterAnimEnd)
+    of c_high_block:
+      character.walking = wNone
+      character.play("high_block_1", 1, callback = characterAnimEnd)
+    of c_high_attack:
+      character.walking = wNone
+      character.play("high_attack_1", 1, callback = characterAnimEnd)
     else:
       discard
     cmd = next character.keyBuffer
 
   if not character.sprite.playing:
     if character.walking == wForward:
-      character.play("forward", 1, callback = characterAnimEnd)
+      character.walk()
     elif character.walking == wBackward:
-      character.pos.x -= CharacterOffset
-      character.play("backward", 1, callback = characterAnimEnd)
+      character.walk(true)
+    else:
+      character.play("idle", 1, callback = characterAnimEnd)
 
 
   case character.control:
@@ -120,7 +172,7 @@ method update*(character: Character, elapsed: float) =
   of ckPlayer1:
     character.keyBuffer.update(player1key, elapsed)
   of ckPlayer2:
-    #TODO
+    character.keyBuffer.update(player2key, elapsed)
     discard
   of ckAI:
     #TODO

@@ -46,6 +46,15 @@ var
       keyboard: GeneralInputKeyboard(key: ScancodeZ))
   )
 
+  player2key* = ControlScheme(
+    a: GeneralInput(
+      kind: giKeyboard,
+      keyboard: GeneralInputKeyboard(key: ScancodeKp0)),
+    b: GeneralInput(
+      kind: giKeyboard,
+      keyboard: GeneralInputKeyboard(key: ScancodeKpPeriod))
+  )
+
 
 proc loadData*() =
   # TODO implement TAR loading

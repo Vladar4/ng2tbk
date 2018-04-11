@@ -36,8 +36,13 @@ proc init*(scene: TitleScene) =
   # player
   scene.player = newCharacter gfxData["player"]
   scene.player.control = ckPlayer1
-  scene.player.pos = GameDim / 2
+  scene.player.pos = GameDim / (3, 2)
   scene.add scene.player
+
+  var p2 = newCharacter(gfxData["player"], true)
+  p2.control = ckPlayer2
+  p2.pos = GameDim / 2
+  scene.add p2
 
 
 proc free*(scene: TitleScene) =
