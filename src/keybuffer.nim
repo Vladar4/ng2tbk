@@ -33,7 +33,7 @@ type
 
 
 const
-  Interval = Framerate * 3
+  Interval = Framerate
   PatternForwardStart   = [keyA_down]
   PatternForwardStop    = [keyA_up]
   PatternBackwardStart  = [keyB_down]

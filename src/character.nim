@@ -27,6 +27,14 @@ type
     control*: ControlKind
     walking*: WalkingKind
     keyBuffer*: KeyBuffer
+    cLowAttack, cHighAttack: LineCollider
+
+
+const
+  ColliderLowAttack = [(115.0, 55.0), (166.0, 62.0)]
+  ColliderLowAttackMirrored = [(13.0, 62.0), (64.0, 55.0)]
+  ColliderHighAttack = [(106.0, 44.0), (152.0, 20.0)]
+  ColliderHighAttackMirrored = [(27.0, 20.0), (73.0, 44.0)]
 
 
 proc init*(character: Character, graphic: TextureGraphic, mirrored = false) =
@@ -72,14 +80,34 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false) =
     c.list.add newBoxCollider(
       character, (CharacterOffset, 60), (CharacterOffset, 120))
 
+  # attack colliders
+  if mirrored:
+    character.cLowAttack = newLineCollider(
+      character, ColliderLowAttackMirrored[0], ColliderLowAttackMirrored[1])
+    character.cHighAttack = newLineCollider(
+      character, ColliderHighAttackMirrored[0], ColliderHighAttackMirrored[1])
+  else:
+    character.cLowAttack = newLineCollider(
+      character, ColliderLowAttack[0], ColliderLowAttack[1])
+    character.cHighAttack = newLineCollider(
+      character, ColliderHighAttack[0], ColliderHighAttack[1])
+
   character.keyBuffer = @[]
 
-#[
-proc colliderOffset(character: Entity, x: float) =
+
+proc hitCollider(character: Entity, highAttack = false) =
   let c = GroupCollider(character.collider)
-  for i in c.list:
-    i.pos.x = x
-]#
+  if highAttack:
+    c.list.add Character(character).cHighAttack
+  else:
+    c.list.add Character(character).cLowAttack
+
+
+proc resetHitCollider(character: Entity) =
+  let c = GroupCollider(character.collider)
+  if c.list.len > 1:
+    c.list.del 1
+
 
 proc newCharacter*(graphic: TextureGraphic, mirrored = false): Character =
   new result
@@ -100,12 +128,18 @@ proc characterAnimEnd(character: Entity, index: int) =
   # LOW ATTACK
   elif index == character.animationIndex("low_attack_1"):
     character.play("low_attack_2", 1, callback = characterAnimEnd)
+    character.hitCollider()
+  elif index == character.animationIndex("low_attack_2"):
+    character.resetHitCollider()
   # HIGH BLOCK
   elif index == character.animationIndex("high_block_1"):
     character.play("high_block_2", 1, callback = characterAnimEnd)
   # HIGH ATTACK
   elif index == character.animationIndex("high_attack_1"):
     character.play("high_attack_2", 1, callback = characterAnimEnd)
+    character.hitCollider(true)
+  elif index == character.animationIndex("high_attack_2"):
+    character.resetHitCollider()
 
   if not character.sprite.playing:
     character.play("idle", 0)
@@ -177,7 +211,6 @@ method update*(character: Character, elapsed: float) =
   of ckAI:
     #TODO
     discard
-
 
 
 method onCollide*(character: Character, target: Entity) =
