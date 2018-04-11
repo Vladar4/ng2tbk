@@ -3,6 +3,7 @@ import
     assets,
     nimgame,
     entity,
+    input,
     scene,
     settings,
     textgraphic,
@@ -54,4 +55,6 @@ proc newTitleScene*(): TitleScene =
 
 method update*(scene: TitleScene, elapsed: float) =
   scene.updateScene elapsed
+  if ScancodeF10.pressed:
+    colliderOutline = not colliderOutline
 

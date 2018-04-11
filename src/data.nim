@@ -12,6 +12,11 @@ import
   ]
 
 
+type
+  ControlScheme* = object
+    a*, b*: GeneralInput
+
+
 const
   GameTitle* = "ng2lgj18"
   #TODO GameIcon* = "data/"
@@ -25,20 +30,20 @@ const
   CharacterOffset2* = CharacterOffset * 2
 
 
-type
-  ControlScheme* = object
-    a*, b*: GeneralInput
-
-
 var
   introScene*, titleScene*: Scene
   defaultFont*: TrueTypeFont
   gfxData*: Assets[TextureGraphic]
   sfxData*: Assets[Sound]
   musData*: Assets[Music]
+
   player1key* = ControlScheme(
-    a: GeneralInput(kind: giKeyboard, keyboard: GeneralInputKeyboard(key: ScancodeX)),
-    b: GeneralInput(kind: giKeyboard, keyboard: GeneralInputKeyboard(key: ScancodeZ))
+    a: GeneralInput(
+      kind: giKeyboard,
+      keyboard: GeneralInputKeyboard(key: ScancodeX)),
+    b: GeneralInput(
+      kind: giKeyboard,
+      keyboard: GeneralInputKeyboard(key: ScancodeZ))
   )
 
 
