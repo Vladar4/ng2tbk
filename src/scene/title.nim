@@ -21,6 +21,10 @@ type
     player: Character
 
 
+proc getCharacters(): seq[Entity] =
+  game.scene.findAll "character"
+
+
 proc init*(scene: TitleScene) =
   init Scene scene
 
@@ -34,13 +38,13 @@ proc init*(scene: TitleScene) =
   scene.add scene.title
 
   # player
-  scene.player = newCharacter gfxData["player"]
-  scene.player.control = ckPlayer1
+  scene.player = newCharacter(gfxData["player"], player1=true)
+  scene.player.getCharacters = getCharacters
   scene.player.pos = GameDim / (3, 2)
   scene.add scene.player
 
-  var p2 = newCharacter(gfxData["player"], true)
-  p2.control = ckPlayer2
+  var p2 = newCharacter(gfxData["player"], mirrored=true, player2=true)
+  p2.getCharacters = getCharacters
   p2.pos = GameDim / 2
   scene.add p2
 
@@ -62,4 +66,6 @@ method update*(scene: TitleScene, elapsed: float) =
   scene.updateScene elapsed
   if ScancodeF10.pressed:
     colliderOutline = not colliderOutline
+  if ScancodeF11.pressed:
+    showInfo = not showInfo
 

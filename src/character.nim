@@ -1,4 +1,5 @@
 import
+  strutils,
   nimgame2 / [
     assets,
     audio,
@@ -28,18 +29,37 @@ type
     walking*: WalkingKind
     keyBuffer*: KeyBuffer
     cLowAttack, cHighAttack: LineCollider
+    health*: int
+    hitCooldown*: float
+    getCharacters*: proc(): seq[Entity]
 
 
 const
+  DefaultHealth* = 5
+  HitCooldown = Framerate * 6
+  ColliderBump = (150.0, 110.0)
+  ColliderBumpMirrored = (30.0, 110.0)
   ColliderLowAttack = [(115.0, 55.0), (166.0, 62.0)]
   ColliderLowAttackMirrored = [(13.0, 62.0), (64.0, 55.0)]
   ColliderHighAttack = [(106.0, 44.0), (152.0, 20.0)]
   ColliderHighAttackMirrored = [(27.0, 20.0), (73.0, 44.0)]
 
 
-proc init*(character: Character, graphic: TextureGraphic, mirrored = false) =
+proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
+    player1 = false, player2 = false) =
   character.initEntity()
   character.tags.add "character"
+  if player1:
+    character.tags.add "player"
+    character.tags.add "player1"
+    character.control = ckPlayer1
+  elif player2:
+    character.tags.add "player"
+    character.tags.add "player2"
+    character.control = ckPlayer2
+  else:
+    character.control = ckAI
+
   character.graphic = graphic
 
   character.mirrored = mirrored
@@ -54,19 +74,19 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false) =
   discard character.addAnimation(
     "backward", toSeq(15..8), Framerate)
   discard character.addAnimation(
-    "low_block_1", toSeq(16..19), Framerate)
+    "low_block_1", toSeq(17..19), Framerate)
   discard character.addAnimation(
     "low_block_2", toSeq(20..23), Framerate)
   discard character.addAnimation(
-    "low_attack_1", @[16,16,17,17,18,18] & toSeq(24..27), Framerate / 2)
+    "low_attack_1", @[16,17,17,17,18,18,18] & toSeq(24..27), Framerate / 2)
   discard character.addAnimation(
     "low_attack_2", toSeq(28..31), Framerate)
   discard character.addAnimation(
-    "high_block_1", toSeq(32..35), Framerate)
+    "high_block_1", toSeq(33..35), Framerate)
   discard character.addAnimation(
     "high_block_2", toSeq(36..39), Framerate)
   discard character.addAnimation(
-    "high_attack_1", @[32,32,33,33,34,34] & toSeq(40..43), Framerate / 2)
+    "high_attack_1", @[32,33,33,33,34,34,34] & toSeq(40..43), Framerate / 2)
   discard character.addAnimation(
     "high_attack_2", toSeq(44..47), Framerate)
 
@@ -79,6 +99,12 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false) =
   else:
     c.list.add newBoxCollider(
       character, (CharacterOffset, 60), (CharacterOffset, 120))
+  #[
+  if mirrored:
+    c.list.add newCollider(character, ColliderBumpMirrored)
+  else:
+    c.list.add newCollider(character, ColliderBump)
+  ]#
 
   # attack colliders
   if mirrored:
@@ -94,24 +120,33 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false) =
 
   character.keyBuffer = @[]
 
+  character.health = DefaultHealth
+
+  character.getCharacters = proc(): seq[Entity] = @[]
+
 
 proc hitCollider(character: Entity, highAttack = false) =
   let c = GroupCollider(character.collider)
   if highAttack:
     c.list.add Character(character).cHighAttack
+    c.tags.add "high_attack"
   else:
     c.list.add Character(character).cLowAttack
+    c.tags.add "low_attack"
 
 
 proc resetHitCollider(character: Entity) =
   let c = GroupCollider(character.collider)
-  if c.list.len > 1:
+  while c.list.len > 1:
     c.list.del 1
+  while c.tags.len > 0:
+    c.tags.del 0
 
 
-proc newCharacter*(graphic: TextureGraphic, mirrored = false): Character =
+proc newCharacter*(graphic: TextureGraphic, mirrored = false,
+    player1=false, player2=false): Character =
   new result
-  result.init(graphic, mirrored)
+  result.init(graphic, mirrored, player1, player2)
 
 
 proc characterAnimEnd(character: Entity, index: int) =
@@ -146,18 +181,25 @@ proc characterAnimEnd(character: Entity, index: int) =
 
 
 proc walk(character: Character, back = false) =
+  let offset =  if back:
+                  if character.mirrored: (CharacterOffset.float, 0.0)
+                  else: (-CharacterOffset.float, 0.0)
+                else:
+                  if character.mirrored: (-CharacterOffset.float, 0.0)
+                  else: (CharacterOffset.float, 0.0)
   # Backward
   if back:
-    if character.mirrored:
-      character.walking = wBackward
-      character.pos.x += CharacterOffset
-      character.play("backward", 1, callback = characterAnimEnd)
-    else:
-      character.walking = wBackward
-      character.pos.x -= CharacterOffset
-      character.play("backward", 1, callback = characterAnimEnd)
+    if character.willCollide(
+        character.pos + offset, 0, 1, character.getCharacters()):
+      return
+    character.walking = wBackward
+    character.pos += offset
+    character.play("backward", 1, callback = characterAnimEnd)
   # Forward
   else:
+    if character.willCollide(
+        character.pos + offset, 0, 1, character.getCharacters()):
+      return
     character.walking = wForward
     character.play("forward", 1, callback = characterAnimEnd)
 
@@ -200,7 +242,6 @@ method update*(character: Character, elapsed: float) =
     else:
       character.play("idle", 1, callback = characterAnimEnd)
 
-
   case character.control:
   of ckNone: discard
   of ckPlayer1:
@@ -212,8 +253,28 @@ method update*(character: Character, elapsed: float) =
     #TODO
     discard
 
+  if character.hitCooldown > 0:
+    character.hitCooldown -= elapsed
+
 
 method onCollide*(character: Character, target: Entity) =
-  #TODO
-  discard
+  let tag = character.tags[^1]
+  if character.hitCooldown <= 0:
+    if "low_attack" in target.collider.tags:
+      character.hitCooldown = HitCooldown
+      if "low_block" in character.currentAnimationName:
+        when not defined(release): echo "low attack blocked by ", tag
+        else: discard
+      else:
+        dec character.health
+        when not defined(release): echo "low attack to ", tag
+        dec character.health
+    elif "high_attack" in target.collider.tags:
+      character.hitCooldown = HitCooldown
+      if "high_block" in character.currentAnimationName:
+        when not defined(release): echo "high attack blocked by ", tag
+        else: discard
+      else:
+        when not defined(release): echo "high attack to ", tag
+        dec character.health
 
