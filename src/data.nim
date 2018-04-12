@@ -18,7 +18,7 @@ type
 
 
 const
-  GameTitle* = "ng2lgj18"
+  GameTitle* = "Two-Button Knight"
   #TODO GameIcon* = "data/"
   GameVersion* = "0.1"
   GameInfo* = GameTitle & " " & GameVersion & " Copyright © 2018 Vladar"
