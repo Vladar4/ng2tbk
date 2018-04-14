@@ -29,7 +29,7 @@ type
     walking*: WalkingKind
     keyBuffer*: KeyBuffer
     cLowAttack, cHighAttack: LineCollider
-    health*: int
+    health*, maxHealth*: int
     hitCooldown*: float
     getCharacters*: proc(): seq[Entity]
 
@@ -37,8 +37,6 @@ type
 const
   DefaultHealth* = 5
   HitCooldown = Framerate * 6
-  ColliderBump = (150.0, 110.0)
-  ColliderBumpMirrored = (30.0, 110.0)
   ColliderLowAttack = [(115.0, 55.0), (166.0, 62.0)]
   ColliderLowAttackMirrored = [(13.0, 62.0), (64.0, 55.0)]
   ColliderHighAttack = [(106.0, 44.0), (152.0, 20.0)]
@@ -89,6 +87,10 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
     "high_attack_1", @[32,33,33,33,34,34,34] & toSeq(40..43), Framerate / 2)
   discard character.addAnimation(
     "high_attack_2", toSeq(44..47), Framerate)
+  discard character.addAnimation(
+    "low_dodge", toSeq(48..55), Framerate)
+  discard character.addAnimation(
+    "high_dodge", toSeq(56..63), Framerate)
 
   # collider
   let c = newGroupCollider character
@@ -99,12 +101,6 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
   else:
     c.list.add newBoxCollider(
       character, (CharacterOffset, 60), (CharacterOffset, 120))
-  #[
-  if mirrored:
-    c.list.add newCollider(character, ColliderBumpMirrored)
-  else:
-    c.list.add newCollider(character, ColliderBump)
-  ]#
 
   # attack colliders
   if mirrored:
@@ -121,6 +117,7 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
   character.keyBuffer = @[]
 
   character.health = DefaultHealth
+  character.maxHealth = DefaultHealth
 
   character.getCharacters = proc(): seq[Entity] = @[]
 
@@ -204,6 +201,19 @@ proc walk(character: Character, back = false) =
     character.play("forward", 1, callback = characterAnimEnd)
 
 
+proc dodge(character: Character, highDodge = false) =
+  let offset =  if character.mirrored: (CharacterOffset.float, 0.0)
+                else: (-CharacterOffset.float, 0.0)
+  if character.willCollide(
+      character.pos + offset, 0, 1, character.getCharacters()):
+    return
+  character.pos += offset
+  if highDodge:
+    character.play("high_dodge", 1, callback = characterAnimEnd)
+  else:
+    character.play("low_dodge", 1, callback = characterAnimEnd)
+
+
 method update*(character: Character, elapsed: float) =
   character.updateEntity elapsed
 
@@ -230,6 +240,12 @@ method update*(character: Character, elapsed: float) =
     of c_high_attack:
       character.walking = wNone
       character.play("high_attack_1", 1, callback = characterAnimEnd)
+    of c_low_dodge:
+      character.walking = wNone
+      character.dodge()
+    of c_high_dodge:
+      character.walking = wNone
+      character.dodge(true)
     else:
       discard
     cmd = next character.keyBuffer

@@ -30,6 +30,8 @@ type
     c_low_attack
     c_high_block
     c_high_attack
+    c_low_dodge
+    c_high_dodge
 
 
 const
@@ -42,6 +44,12 @@ const
   PatternHighBlock      = [keyB_down, keyB_up]
   PatternLowAttack      = [keyA_down, keyA_up, keyA_down, keyA_up]
   PatternHighAttack     = [keyB_down, keyB_up, keyB_down, keyB_up]
+  PatternLowDodge       = [
+    @[keyA_down, keyA_up, keyB_down],
+    @[keyA_down, keyB_down]]
+  PatternHighDodge      = [
+    @[keyB_down, keyB_up, keyA_down],
+    @[keyB_down, keyA_down]]
 
 
 proc add(buffer: var KeyBuffer, elapsed: float) =
@@ -96,6 +104,10 @@ proc next*(buffer: var KeyBuffer): Command =
 
   buffer = buffer[first..^1]
   if stack.len > 0 and first > 0: # pattern matching
+    for pattern in PatternHighDodge:
+      if stack.match pattern: return c_high_dodge
+    for pattern in PatternLowDodge:
+      if stack.match pattern: return c_low_dodge
     if stack.match PatternHighAttack: return c_high_attack
     if stack.match PatternHighBlock: return c_high_block
     if stack.match PatternLowAttack: return c_low_attack
