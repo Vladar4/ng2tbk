@@ -1,6 +1,7 @@
 import
   nimgame2 / [
     assets,
+    audio,
     nimgame,
     entity,
     graphic,
@@ -22,6 +23,7 @@ type
     left, right: Character
     leftLife, rightLife: LifeMeter
     twoPlayers*: bool
+    victoryChannel*: Channel
 
 
 proc getCharacters(): seq[Entity] =
@@ -70,6 +72,8 @@ method show*(scene: ArenaScene) =
   scene.rightLife.pos = (float GameDim.w - 10, float GameDim.h - 10)
   scene.add scene.rightLife
 
+  scene.victoryChannel = -1
+
 
 proc newArenaScene*(): ArenaScene =
   new result, free
@@ -82,4 +86,11 @@ method update*(scene: ArenaScene, elapsed: float) =
     colliderOutline = not colliderOutline
   if ScancodeF11.pressed:
     showInfo = not showInfo
+
+  if scene.victoryChannel < 0:
+    if scene.left.killed or scene.right.killed:
+      scene.victoryChannel = sfxData["victory"].play()
+  else:
+    if not playing scene.victoryChannel:
+      game.scene = titleScene
 

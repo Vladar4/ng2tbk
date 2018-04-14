@@ -83,7 +83,7 @@ proc free*(scene: TitleScene) =
 
 
 method show*(scene: TitleScene) =
-  discard
+  scene.player.pos.x = 0.0
 
 
 proc newTitleScene*(): TitleScene =

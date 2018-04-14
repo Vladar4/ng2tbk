@@ -382,11 +382,15 @@ method onCollide*(character: Character, target: Entity) =
       if "low_block" in character.currentAnimationName:
         when not defined(release): echo "low attack blocked by ", tag
         else: discard
+        sfxData["parry_low"].play().setPanning(
+          character.panning[0], character.panning[1])
       elif "high_dodge" in character.currentAnimationName:
         when not defined(release): echo "low attack dodged by ", tag
         else: discard
       else:
         when not defined(release): echo "low attack to ", tag
+        sfxData["hit_low"].play().setPanning(
+          character.panning[0], character.panning[1])
         dec character.health
         if character.health < 1:
           kill character
@@ -396,11 +400,15 @@ method onCollide*(character: Character, target: Entity) =
       if "high_block" in character.currentAnimationName:
         when not defined(release): echo "high attack blocked by ", tag
         else: discard
+        sfxData["parry_high"].play().setPanning(
+          character.panning[0], character.panning[1])
       elif "low_dodge" in character.currentAnimationName:
         when not defined(release): echo "high attack dodged by ", tag
         else: discard
       else:
         when not defined(release): echo "high attack to ", tag
+        sfxData["hit_high"].play().setPanning(
+          character.panning[0], character.panning[1])
         dec character.health
         if character.health < 1:
           kill character
