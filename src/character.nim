@@ -33,6 +33,7 @@ type
     hitCooldown*: float
     getCharacters*: proc(): seq[Entity]
     panning: array[2, Panning]
+    killed*: bool
 
 
 const
@@ -40,8 +41,8 @@ const
   HitCooldown = Framerate * 6
   ColliderLowAttack = [(115.0, 55.0), (166.0, 62.0)]
   ColliderLowAttackMirrored = [(13.0, 62.0), (64.0, 55.0)]
-  ColliderHighAttack = [(106.0, 44.0), (152.0, 20.0)]
-  ColliderHighAttackMirrored = [(27.0, 20.0), (73.0, 44.0)]
+  ColliderHighAttack = [(106.0, 44.0), (162.0, 25.0)]
+  ColliderHighAttackMirrored = [(17.0, 25.0), (73.0, 44.0)]
 
 
 proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
@@ -92,6 +93,8 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
     "low_dodge", toSeq(48..55), Framerate)
   discard character.addAnimation(
     "high_dodge", toSeq(56..63), Framerate)
+  discard character.addAnimation(
+    "death", toSeq(64..71), Framerate)
 
   # collider
   let c = newGroupCollider character
@@ -151,7 +154,7 @@ proc resetHitCollider(character: Entity) =
 proc newCharacter*(graphic: TextureGraphic, mirrored = false,
     player1=false, player2=false): Character =
   new result
-  result.init(graphic, mirrored, player1, player2)
+  init result, graphic, mirrored, player1, player2
 
 
 proc characterAnimEnd(character: Entity, index: int) =
@@ -192,6 +195,11 @@ proc walk(character: Character, back = false) =
                 else:
                   if character.mirrored: (-CharacterOffset.float, 0.0)
                   else: (CharacterOffset.float, 0.0)
+  let newPos =  character.pos.x +
+                GroupCollider(character.collider).list[0].pos.x +
+                offset[0]
+  if  (newPos < 0.0) or (newPos > float GameDim.w):
+    return
   # Backward
   if back:
     if character.willCollide(
@@ -212,6 +220,11 @@ proc walk(character: Character, back = false) =
 proc dodge(character: Character, highDodge = false) =
   let offset =  if character.mirrored: (CharacterOffset.float, 0.0)
                 else: (-CharacterOffset.float, 0.0)
+  let newPos =  character.pos.x +
+                GroupCollider(character.collider).list[0].pos.x +
+                offset[0]
+  if  (newPos < 0.0) or (newPos > float GameDim.w):
+    return
   if character.willCollide(
       character.pos + offset, 0, 1, character.getCharacters()):
     return
@@ -225,6 +238,9 @@ proc dodge(character: Character, highDodge = false) =
 method update*(character: Character, elapsed: float) =
   character.updateEntity elapsed
 
+  if character.killed:
+    return
+
   var cmd = next character.keyBuffer
   while cmd != c_idle:
     case cmd:
@@ -237,27 +253,33 @@ method update*(character: Character, elapsed: float) =
     of c_backward_stop:
       character.walking = wNone
     of c_low_block:
-      character.walking = wNone
-      character.play("low_block_1", 1, callback = characterAnimEnd)
+      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+        character.walking = wNone
+        character.play("low_block_1", 1, callback = characterAnimEnd)
     of c_low_attack:
-      character.walking = wNone
-      character.play("low_attack_1", 1, callback = characterAnimEnd)
-      sfxData["swing_low"].play().setPanning(
-        character.panning[0], character.panning[1])
+      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+        character.walking = wNone
+        character.play("low_attack_1", 1, callback = characterAnimEnd)
+        sfxData["swing_low"].play().setPanning(
+          character.panning[0], character.panning[1])
     of c_high_block:
-      character.walking = wNone
-      character.play("high_block_1", 1, callback = characterAnimEnd)
+      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+        character.walking = wNone
+        character.play("high_block_1", 1, callback = characterAnimEnd)
     of c_high_attack:
-      character.walking = wNone
-      character.play("high_attack_1", 1, callback = characterAnimEnd)
-      sfxData["swing_high"].play().setPanning(
-        character.panning[0], character.panning[1])
+      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+        character.walking = wNone
+        character.play("high_attack_1", 1, callback = characterAnimEnd)
+        sfxData["swing_high"].play().setPanning(
+          character.panning[0], character.panning[1])
     of c_low_dodge:
-      character.walking = wNone
-      character.dodge()
+      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+        character.walking = wNone
+        character.dodge()
     of c_high_dodge:
-      character.walking = wNone
-      character.dodge(true)
+      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+        character.walking = wNone
+        character.dodge(true)
     else:
       discard
     cmd = next character.keyBuffer
@@ -285,9 +307,19 @@ method update*(character: Character, elapsed: float) =
     character.hitCooldown -= elapsed
 
 
+proc kill*(character: Character) =
+  character.killed = true
+  character.play("death", 1)
+  sfxData["death"].play().setPanning(
+    character.panning[0], character.panning[1])
+
+
 method onCollide*(character: Character, target: Entity) =
+  if character.killed:
+    return
   let tag = character.tags[^1]
   if character.hitCooldown <= 0:
+
     if "low_attack" in target.collider.tags:
       character.hitCooldown = HitCooldown
       if "low_block" in character.currentAnimationName:
@@ -300,6 +332,9 @@ method onCollide*(character: Character, target: Entity) =
         dec character.health
         when not defined(release): echo "low attack to ", tag
         dec character.health
+        if character.health < 1:
+          kill character
+
     elif "high_attack" in target.collider.tags:
       character.hitCooldown = HitCooldown
       if "high_block" in character.currentAnimationName:
@@ -311,4 +346,6 @@ method onCollide*(character: Character, target: Entity) =
       else:
         when not defined(release): echo "high attack to ", tag
         dec character.health
+        if character.health < 1:
+          kill character
 

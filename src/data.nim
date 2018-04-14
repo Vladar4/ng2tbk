@@ -31,7 +31,7 @@ const
 
 
 var
-  introScene*, titleScene*: Scene
+  introScene*, titleScene*, arenaScene*: Scene
   defaultFont*: TrueTypeFont
   gfxData*: Assets[TextureGraphic]
   sfxData*: Assets[Sound]

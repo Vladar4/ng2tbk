@@ -8,6 +8,7 @@ import
   scene / [
     intro,
     title,
+    arena,
   ]
 
 game = newGame()
@@ -24,6 +25,7 @@ if game.init(GameDim.w, GameDim.h, title = GameTitle,
   # Scenes
   introScene = newIntroScene()
   titleScene = newTitleScene()
+  arenaScene = newArenaScene()
   # Run
   game.scene = introScene
   run game

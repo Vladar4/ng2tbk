@@ -10,8 +10,10 @@ import
     tween,
     types,
   ],
+  arena,
   ../data,
-  ../character
+  ../character,
+  ../gong
 
 
 type
@@ -19,6 +21,7 @@ type
     titleText: TextGraphic
     title: Entity
     player: Character
+    gong1P, gong2P, gongExit: Gong
 
 
 proc getCharacters(): seq[Entity] =
@@ -40,17 +43,36 @@ proc init*(scene: TitleScene) =
   # player
   scene.player = newCharacter(gfxData["player"], player1=true)
   scene.player.getCharacters = getCharacters
-  scene.player.pos = GameDim / (3, 2)
+  scene.player.pos = GameDim / 2
+  scene.player.pos.x = 0.0
   scene.add scene.player
 
-  var p2 = newCharacter(gfxData["player"], mirrored=true, player2=true)
-  p2.getCharacters = getCharacters
-  p2.pos = GameDim / 2
-  scene.add p2
+  # gongs
+  let gongOffset = (-10.0, -10.0)
+  scene.gong1P = newGong(gfxData["gong"], 0, proc() =
+    ArenaScene(arenaScene).twoPlayers = false
+    game.scene = arenaScene)
+  scene.gong1P.pos = GameDim / (4, 3)
+  scene.gong1P.pos += gongOffset
+  scene.add scene.gong1P
+
+  scene.gong2P = newGong(gfxData["gong"], 1, proc() =
+    ArenaScene(arenaScene).twoPlayers = true
+    game.scene = arenaScene)
+  scene.gong2P.pos = GameDim / (2, 3)
+  scene.gong2P.pos += gongOffset
+  scene.add scene.gong2P
+
+  scene.gongExit = newGong(gfxData["gong"], 2, proc() = echo "gong Exit")
+  scene.gongExit.pos = GameDim / (8, 3)
+  scene.gongExit.pos.x *= 6
+  scene.gongExit.pos += gongOffset
+  scene.add scene.gongExit
 
 
 proc free*(scene: TitleScene) =
-  discard
+  scene.player.pos = GameDim / (8, 2)
+  scene.player.pos.x = 0.0
 
 
 method show*(scene: TitleScene) =
