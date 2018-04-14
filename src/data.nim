@@ -65,11 +65,9 @@ proc loadData*() =
   # GFX
   gfxData = newAssets[TextureGraphic]("data/gfx",
     proc(file: string): TextureGraphic = newTextureGraphic(file))
-  # SFX TODO
-  #[
-  sfxData = newAssets[TextureGraphic]("data/sfx",
+  # SFX
+  sfxData = newAssets[Sound]("data/sfx",
     proc(file: string): Sound = newSound(file))
-  ]#
   # MUS TODO
   #[
   musData = newAssets[Music]("data/mus",

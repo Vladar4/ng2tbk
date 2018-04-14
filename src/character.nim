@@ -32,6 +32,7 @@ type
     health*, maxHealth*: int
     hitCooldown*: float
     getCharacters*: proc(): seq[Entity]
+    panning: array[2, Panning]
 
 
 const
@@ -120,6 +121,13 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
   character.maxHealth = DefaultHealth
 
   character.getCharacters = proc(): seq[Entity] = @[]
+
+  if mirrored:
+    character.panning[0] = 127
+    character.panning[1] = 255
+  else:
+    character.panning[0] = 255
+    character.panning[1] = 127
 
 
 proc hitCollider(character: Entity, highAttack = false) =
@@ -234,12 +242,16 @@ method update*(character: Character, elapsed: float) =
     of c_low_attack:
       character.walking = wNone
       character.play("low_attack_1", 1, callback = characterAnimEnd)
+      sfxData["swing_low"].play().setPanning(
+        character.panning[0], character.panning[1])
     of c_high_block:
       character.walking = wNone
       character.play("high_block_1", 1, callback = characterAnimEnd)
     of c_high_attack:
       character.walking = wNone
       character.play("high_attack_1", 1, callback = characterAnimEnd)
+      sfxData["swing_high"].play().setPanning(
+        character.panning[0], character.panning[1])
     of c_low_dodge:
       character.walking = wNone
       character.dodge()
@@ -281,6 +293,9 @@ method onCollide*(character: Character, target: Entity) =
       if "low_block" in character.currentAnimationName:
         when not defined(release): echo "low attack blocked by ", tag
         else: discard
+      elif "high_dodge" in character.currentAnimationName:
+        when not defined(release): echo "low attack dodged by ", tag
+        else: discard
       else:
         dec character.health
         when not defined(release): echo "low attack to ", tag
@@ -289,6 +304,9 @@ method onCollide*(character: Character, target: Entity) =
       character.hitCooldown = HitCooldown
       if "high_block" in character.currentAnimationName:
         when not defined(release): echo "high attack blocked by ", tag
+        else: discard
+      elif "low_dodge" in character.currentAnimationName:
+        when not defined(release): echo "high attack dodged by ", tag
         else: discard
       else:
         when not defined(release): echo "high attack to ", tag
