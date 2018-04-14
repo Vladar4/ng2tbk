@@ -336,10 +336,14 @@ method update*(character: Character, elapsed: float) =
     if not (character.sprite.playing and character.sprite.currentAnimation > 2):
       character.walking = wNone
       character.dodge()
+      sfxData["dodge"].play().setPanning(
+        character.panning[0], character.panning[1])
   of c_high_dodge:
     if not (character.sprite.playing and character.sprite.currentAnimation > 2):
       character.walking = wNone
       character.dodge(true)
+      sfxData["dodge"].play().setPanning(
+        character.panning[0], character.panning[1])
   else:
     discard
 
