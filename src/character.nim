@@ -7,6 +7,7 @@ import
     input,
     texturegraphic,
     types,
+    utils,
   ],
   data, keybuffer
 
@@ -95,6 +96,8 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
     "high_dodge", toSeq(56..63), Framerate)
   discard character.addAnimation(
     "death", toSeq(64..71), Framerate)
+  discard character.addAnimation(
+    "dead", [71], Framerate)
 
   # collider
   let c = newGroupCollider character
@@ -188,7 +191,11 @@ proc characterAnimEnd(character: Entity, index: int) =
           index == character.animationIndex("high_attack_1")):
     character.resetHitCollider()
 
-  if not character.sprite.playing and not Character(character).killed:
+  if Character(character).killed:
+    character.play("dead", -1)
+    return
+
+  if not character.sprite.playing:
     character.play("idle", 0)
 
 
@@ -253,14 +260,47 @@ proc dodge(character: Character, highDodge = false) =
     character.play("low_dodge", 1, callback = characterAnimEnd)
 
 
+proc aiTarget(character: Character): Character =
+  result = nil
+  for c in character.getCharacters():
+    if character == Character(c):
+      continue
+    return Character(c)
+
+
+proc aiCommand(character: Character): Command =
+  if character.currentAnimationName == "idle":
+    let
+      target = character.aiTarget()
+      dist = character.pos.distance target.pos
+    if target.killed: # job is done
+      return
+    if dist > CharacterOffset: # too far
+      character.walking = wForward
+    else: # close enough
+      let cmds = [
+        c_low_block,  # 0
+        c_low_attack, # 1
+        c_high_block, # 2
+        c_high_attack,# 3
+        c_low_dodge,  # 4
+        c_high_dodge] # 5
+      return cmds[randWeighted([3, 2, 3, 2, 1, 1])]
+
+
 method update*(character: Character, elapsed: float) =
   character.updateEntity elapsed
 
   if character.killed:
     return
 
-  var cmd = next character.keyBuffer
-  #while cmd != c_idle:
+  var cmd = if character.control in {ckPlayer1, ckPlayer2}:
+    next character.keyBuffer
+  elif character.control == ckAI:
+    aiCommand character
+  else:
+    c_idle
+
   case cmd:
   of c_forward_start:
     if character.walking != wForward:
@@ -302,14 +342,13 @@ method update*(character: Character, elapsed: float) =
       character.dodge(true)
   else:
     discard
-  #  cmd = next character.keyBuffer
 
   if not character.sprite.playing:
     if character.walking == wForward:
       character.walk()
     elif character.walking == wBackward:
       character.walk(true)
-    elif not character.killed:
+    else:
       character.play("idle", 1, callback = characterAnimEnd)
 
   case character.control:
@@ -318,9 +357,7 @@ method update*(character: Character, elapsed: float) =
     character.keyBuffer.update(player1key, elapsed)
   of ckPlayer2:
     character.keyBuffer.update(player2key, elapsed)
-    discard
   of ckAI:
-    #TODO
     discard
 
   if character.hitCooldown > 0:
