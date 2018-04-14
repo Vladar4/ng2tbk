@@ -18,6 +18,7 @@ import
 
 type
   TitleScene = ref object of Scene
+    bg: Entity
     titleText: TextGraphic
     title: Entity
     player: Character
@@ -30,6 +31,12 @@ proc getCharacters(): seq[Entity] =
 
 proc init*(scene: TitleScene) =
   init Scene scene
+
+  # bg
+  scene.bg = newEntity()
+  scene.bg.graphic = gfxData["bg_title"]
+  scene.bg.layer = -100
+  scene.add scene.bg
 
   # title
   scene.titleText = newTextGraphic defaultFont

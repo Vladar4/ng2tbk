@@ -37,7 +37,7 @@ type
 
 
 const
-  DefaultHealth* = 5
+  DefaultHealth* = 10
   HitCooldown = Framerate * 6
   ColliderLowAttack = [(115.0, 55.0), (166.0, 62.0)]
   ColliderLowAttackMirrored = [(13.0, 62.0), (64.0, 55.0)]
@@ -173,7 +173,7 @@ proc characterAnimEnd(character: Entity, index: int) =
     character.play("low_attack_2", 1, callback = characterAnimEnd)
     character.hitCollider()
   elif index == character.animationIndex("low_attack_2"):
-    character.resetHitCollider()
+    discard
   # HIGH BLOCK
   elif index == character.animationIndex("high_block_1"):
     character.play("high_block_2", 1, callback = characterAnimEnd)
@@ -182,9 +182,13 @@ proc characterAnimEnd(character: Entity, index: int) =
     character.play("high_attack_2", 1, callback = characterAnimEnd)
     character.hitCollider(true)
   elif index == character.animationIndex("high_attack_2"):
+    discard
+
+  if not (index == character.animationIndex("low_attack_1") or
+          index == character.animationIndex("high_attack_1")):
     character.resetHitCollider()
 
-  if not character.sprite.playing:
+  if not character.sprite.playing and not Character(character).killed:
     character.play("idle", 0)
 
 
@@ -203,7 +207,8 @@ proc walk(character: Character, back = false) =
   # Backward
   if back:
     if character.willCollide(
-        character.pos + offset, 0, 1, character.getCharacters()):
+        character.pos + offset, 0, 1, character.getCharacters()) or
+       character.isColliding(character.getCharacters()):
       return
     character.walking = wBackward
     character.pos += offset
@@ -211,8 +216,21 @@ proc walk(character: Character, back = false) =
   # Forward
   else:
     if character.willCollide(
-        character.pos + offset, 0, 1, character.getCharacters()):
+        character.pos + offset, 0, 1, character.getCharacters()) or
+       character.isColliding(character.getCharacters()):
       return
+    #TODO
+    # quick hack for a double-movement case (for no)
+    for c in character.getCharacters():
+      if character == Character(c):
+        continue
+      if offset[0] > 0.0:
+        if character.pos + offset >= c.pos:
+          return
+      else:
+        if character.pos + offset <= c.pos:
+          return
+
     character.walking = wForward
     character.play("forward", 1, callback = characterAnimEnd)
 
@@ -242,54 +260,56 @@ method update*(character: Character, elapsed: float) =
     return
 
   var cmd = next character.keyBuffer
-  while cmd != c_idle:
-    case cmd:
-    of c_forward_start:
+  #while cmd != c_idle:
+  case cmd:
+  of c_forward_start:
+    if character.walking != wForward:
       character.walk()
-    of c_forward_stop:
-      character.walking = wNone
-    of c_backward_start:
+  of c_forward_stop:
+    character.walking = wNone
+  of c_backward_start:
+    if character.walking != wBackward:
       character.walk(true)
-    of c_backward_stop:
+  of c_backward_stop:
+    character.walking = wNone
+  of c_low_block:
+    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
       character.walking = wNone
-    of c_low_block:
-      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
-        character.walking = wNone
-        character.play("low_block_1", 1, callback = characterAnimEnd)
-    of c_low_attack:
-      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
-        character.walking = wNone
-        character.play("low_attack_1", 1, callback = characterAnimEnd)
-        sfxData["swing_low"].play().setPanning(
-          character.panning[0], character.panning[1])
-    of c_high_block:
-      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
-        character.walking = wNone
-        character.play("high_block_1", 1, callback = characterAnimEnd)
-    of c_high_attack:
-      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
-        character.walking = wNone
-        character.play("high_attack_1", 1, callback = characterAnimEnd)
-        sfxData["swing_high"].play().setPanning(
-          character.panning[0], character.panning[1])
-    of c_low_dodge:
-      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
-        character.walking = wNone
-        character.dodge()
-    of c_high_dodge:
-      if not (character.sprite.playing and character.sprite.currentAnimation > 2):
-        character.walking = wNone
-        character.dodge(true)
-    else:
-      discard
-    cmd = next character.keyBuffer
+      character.play("low_block_1", 1, callback = characterAnimEnd)
+  of c_low_attack:
+    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+      character.walking = wNone
+      character.play("low_attack_1", 1, callback = characterAnimEnd)
+      sfxData["swing_low"].play().setPanning(
+        character.panning[0], character.panning[1])
+  of c_high_block:
+    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+      character.walking = wNone
+      character.play("high_block_1", 1, callback = characterAnimEnd)
+  of c_high_attack:
+    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+      character.walking = wNone
+      character.play("high_attack_1", 1, callback = characterAnimEnd)
+      sfxData["swing_high"].play().setPanning(
+        character.panning[0], character.panning[1])
+  of c_low_dodge:
+    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+      character.walking = wNone
+      character.dodge()
+  of c_high_dodge:
+    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+      character.walking = wNone
+      character.dodge(true)
+  else:
+    discard
+  #  cmd = next character.keyBuffer
 
   if not character.sprite.playing:
     if character.walking == wForward:
       character.walk()
     elif character.walking == wBackward:
       character.walk(true)
-    else:
+    elif not character.killed:
       character.play("idle", 1, callback = characterAnimEnd)
 
   case character.control:
@@ -309,7 +329,7 @@ method update*(character: Character, elapsed: float) =
 
 proc kill*(character: Character) =
   character.killed = true
-  character.play("death", 1)
+  character.play("death", 1, callback = characterAnimEnd)
   sfxData["death"].play().setPanning(
     character.panning[0], character.panning[1])
 
@@ -329,7 +349,6 @@ method onCollide*(character: Character, target: Entity) =
         when not defined(release): echo "low attack dodged by ", tag
         else: discard
       else:
-        dec character.health
         when not defined(release): echo "low attack to ", tag
         dec character.health
         if character.health < 1:

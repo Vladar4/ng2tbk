@@ -3,6 +3,7 @@ import
     assets,
     nimgame,
     entity,
+    graphic,
     input,
     scene,
     settings,
@@ -11,12 +12,15 @@ import
     types,
   ],
   ../data,
-  ../character
+  ../character,
+  ../lifemeter
 
 
 type
   ArenaScene* = ref object of Scene
+    bg: Entity
     left, right: Character
+    leftLife, rightLife: LifeMeter
     twoPlayers*: bool
 
 
@@ -35,12 +39,22 @@ proc free*(scene: ArenaScene) =
 method show*(scene: ArenaScene) =
   scene.clear()
 
+  # bg
+  scene.bg = newEntity()
+  scene.bg.graphic = gfxData["bg_arena"]
+  scene.bg.layer = -100
+  scene.add scene.bg
+
   # left
   scene.left = newCharacter(gfxData["player"], player1=true)
   scene.left.getCharacters = getCharacters
   scene.left.pos = GameDim / 2
   scene.left.pos.x = 0.0
   scene.add scene.left
+
+  scene.leftLife = newLifeMeter(scene.left)
+  scene.leftLife.pos = (10.0, float GameDim.h - 10)
+  scene.add scene.leftLife
 
   # right
   if scene.twoPlayers:
@@ -51,6 +65,10 @@ method show*(scene: ArenaScene) =
   scene.right.pos = GameDim / 2
   scene.right.pos.x = float(GameDim.w - scene.right.sprite.dim.w)
   scene.add scene.right
+
+  scene.rightLife = newLifeMeter(scene.right, true)
+  scene.rightLife.pos = (float GameDim.w - 10, float GameDim.h - 10)
+  scene.add scene.rightLife
 
 
 proc newArenaScene*(): ArenaScene =
