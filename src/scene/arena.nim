@@ -43,7 +43,7 @@ method show*(scene: ArenaScene) =
 
   # bg
   scene.bg = newEntity()
-  scene.bg.graphic = gfxData["bg_arena"]
+  scene.bg.graphic = gfxData["bg"]
   scene.bg.layer = -100
   scene.add scene.bg
 

@@ -79,6 +79,10 @@ proc match(keys, pattern: openarray[KeyKind]): bool =
   return true
 
 
+proc flush*(buffer: var KeyBuffer) =
+  buffer = @[]
+
+
 proc next*(buffer: var KeyBuffer): Command =
   result = c_idle
   var

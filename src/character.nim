@@ -146,7 +146,7 @@ proc hitCollider(character: Entity, highAttack = false) =
     c.tags.add "low_attack"
 
 
-proc resetHitCollider(character: Entity) =
+proc resetHitCollider*(character: Entity) =
   let c = GroupCollider(character.collider)
   while c.list.len > 1:
     c.list.del 1
@@ -276,7 +276,10 @@ proc aiCommand(character: Character): Command =
     if target.killed: # job is done
       return
     if dist > CharacterOffset: # too far
-      character.walking = wForward
+      if randBool(0.85):
+        character.walking = wForward
+      else:
+        character.walking = wBackward
     else: # close enough
       let cmds = [
         c_low_block,  # 0
@@ -285,7 +288,7 @@ proc aiCommand(character: Character): Command =
         c_high_attack,# 3
         c_low_dodge,  # 4
         c_high_dodge] # 5
-      return cmds[randWeighted([3, 2, 3, 2, 1, 1])]
+      return cmds[randWeighted([4, 2, 4, 2, 1, 1])]
 
 
 method update*(character: Character, elapsed: float) =

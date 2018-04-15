@@ -3,6 +3,7 @@ import
     assets,
     nimgame,
     entity,
+    graphic,
     input,
     scene,
     settings,
@@ -13,7 +14,8 @@ import
   arena,
   ../data,
   ../character,
-  ../gong
+  ../gong,
+  ../keybuffer
 
 
 type
@@ -25,6 +27,11 @@ type
     gong1P, gong2P, gongExit: Gong
 
 
+var
+  exitTimer = 1.5
+  exitSwitch = false
+
+
 proc getCharacters(): seq[Entity] =
   game.scene.findAll "character"
 
@@ -34,7 +41,7 @@ proc init*(scene: TitleScene) =
 
   # bg
   scene.bg = newEntity()
-  scene.bg.graphic = gfxData["bg_title"]
+  scene.bg.graphic = gfxData["bg"]
   scene.bg.layer = -100
   scene.add scene.bg
 
@@ -63,6 +70,14 @@ proc init*(scene: TitleScene) =
   scene.gong1P.pos += gongOffset
   scene.add scene.gong1P
 
+  let title1P = newEntity()
+  title1P.graphic = newTextGraphic defaultFont
+  TextGraphic(title1P.graphic).setText "1P"
+  title1P.centrify(HAlign.center, VAlign.bottom)
+  title1P.pos = scene.gong1P.pos
+  title1P.pos += (90.0, 30.0)
+  scene.add title1P
+
   scene.gong2P = newGong(gfxData["gong"], 1, proc() =
     ArenaScene(arenaScene).twoPlayers = true
     game.scene = arenaScene)
@@ -70,11 +85,28 @@ proc init*(scene: TitleScene) =
   scene.gong2P.pos += gongOffset
   scene.add scene.gong2P
 
-  scene.gongExit = newGong(gfxData["gong"], 2, proc() = echo "gong Exit")
+  let title2P = newEntity()
+  title2P.graphic = newTextGraphic defaultFont
+  TextGraphic(title2P.graphic).setText "2P"
+  title2P.centrify(HAlign.center, VAlign.bottom)
+  title2P.pos = scene.gong2P.pos
+  title2P.pos += (90.0, 30.0)
+  scene.add title2P
+
+  scene.gongExit = newGong(gfxData["gong"], 2, proc() =
+    exitSwitch = true)
   scene.gongExit.pos = GameDim / (8, 3)
   scene.gongExit.pos.x *= 6
   scene.gongExit.pos += gongOffset
   scene.add scene.gongExit
+
+  let titleExit = newEntity()
+  titleExit.graphic = newTextGraphic defaultFont
+  TextGraphic(titleExit.graphic).setText "Exit"
+  titleExit.centrify(HAlign.center, VAlign.bottom)
+  titleExit.pos = scene.gongExit.pos
+  titleExit.pos += (90.0, 30.0)
+  scene.add titleExit
 
 
 proc free*(scene: TitleScene) =
@@ -84,6 +116,9 @@ proc free*(scene: TitleScene) =
 
 method show*(scene: TitleScene) =
   scene.player.pos.x = 0.0
+  flush scene.player.keyBuffer
+  scene.player.play("idle")
+  scene.player.resetHitCollider()
 
 
 proc newTitleScene*(): TitleScene =
@@ -97,4 +132,8 @@ method update*(scene: TitleScene, elapsed: float) =
     colliderOutline = not colliderOutline
   if ScancodeF11.pressed:
     showInfo = not showInfo
+  if exitSwitch:
+    exitTimer -= elapsed
+    if exitTimer <= 0.0:
+      gameRunning = false
 
