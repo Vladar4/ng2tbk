@@ -2,8 +2,8 @@
 
 # Configured for Ubuntu 16.04 LTS (x86_64)
 
-NAME="Glorious Glacier Grotto"
-PROJ="gggrotto"
+NAME="Two-Button Knight"
+PROJ="tbk"
 ARCH="x86_64"
 DATA="data"
 DEPS="\

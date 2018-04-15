@@ -1,6 +1,5 @@
 import
   nimgame2 / [
-    plugin/tar,
     assets,
     audio,
     input,

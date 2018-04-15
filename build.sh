@@ -1,6 +1,6 @@
 #!/bin/sh
 cd src
-nim c --out:../ng2tbk -d:release --opt:speed tbk.nim
+nim c --out:../tbk -d:release --opt:speed ng2tbk.nim
 rm -rf nimcache
 cd ..
 

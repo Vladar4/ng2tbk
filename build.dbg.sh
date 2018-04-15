@@ -1,6 +1,6 @@
 #!/bin/sh
 cd src
-nim c --out:../ng2tbk tbk.nim
+nim c --out:../tbk ng2tbk.nim
 #rm -rf nimcache
 cd ..
 
