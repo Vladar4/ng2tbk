@@ -74,7 +74,7 @@ proc init*(scene: TitleScene) =
   scene.add gameInfo
 
   # player
-  scene.player = newCharacter(gfxData["player"], player1=true)
+  scene.player = newCharacter(gfxData["blue_player"], player1=true)
   scene.player.getCharacters = getCharacters
   scene.player.pos = GameDim / 2
   scene.player.pos.x = 0.0

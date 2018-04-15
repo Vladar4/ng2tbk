@@ -227,7 +227,7 @@ proc walk(character: Character, back = false) =
        character.isColliding(character.getCharacters()):
       return
     #TODO
-    # quick hack for a double-movement case (for no)
+    # quick hack for a double-movement case (for now)
     for c in character.getCharacters():
       if character == Character(c):
         continue
@@ -288,7 +288,7 @@ proc aiCommand(character: Character): Command =
         c_high_attack,# 3
         c_low_dodge,  # 4
         c_high_dodge] # 5
-      return cmds[randWeighted([4, 2, 4, 2, 1, 1])]
+      return cmds[randWeighted([4, 1, 4, 1, 2, 2])]
 
 
 method update*(character: Character, elapsed: float) =

@@ -49,10 +49,10 @@ var
   player2key* = ControlScheme(
     a: GeneralInput(
       kind: giKeyboard,
-      keyboard: GeneralInputKeyboard(key: ScancodePeriod)),
+      keyboard: GeneralInputKeyboard(key: ScancodeComma)),
     b: GeneralInput(
       kind: giKeyboard,
-      keyboard: GeneralInputKeyboard(key: ScancodeComma))
+      keyboard: GeneralInputKeyboard(key: ScancodePeriod))
   )
 
 

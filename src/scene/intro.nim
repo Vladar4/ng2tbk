@@ -14,10 +14,14 @@ import
 
 type
   IntroScene = ref object of Scene
+    bg: Entity
 
 
 proc init*(scene: IntroScene) =
   init Scene scene
+  scene.bg = newEntity()
+  scene.bg.graphic = gfxData["intro"]
+  scene.add scene.bg
 
 
 proc free*(scene: IntroScene) =

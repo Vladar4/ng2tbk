@@ -17,6 +17,7 @@ if game.init(GameDim.w, GameDim.h, title = GameTitle,
   # Init
   game.setResizable(true)
   game.minSize = (GameDim.w, GameDim.h)
+  game.windowSize = (GameDim * 2)
   game.centrify()
   loadData()
   #colliderOutline = true

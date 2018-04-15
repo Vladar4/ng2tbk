@@ -48,7 +48,7 @@ method show*(scene: ArenaScene) =
   scene.add scene.bg
 
   # left
-  scene.left = newCharacter(gfxData["player"], player1=true)
+  scene.left = newCharacter(gfxData["blue_player"], player1=true)
   scene.left.getCharacters = getCharacters
   scene.left.pos = GameDim / 2
   scene.left.pos.x = 0.0
@@ -60,9 +60,9 @@ method show*(scene: ArenaScene) =
 
   # right
   if scene.twoPlayers:
-    scene.right = newCharacter(gfxData["player"], mirrored=true, player2=true)
+    scene.right = newCharacter(gfxData["red_player"], mirrored=true, player2=true)
   else:
-    scene.right = newCharacter(gfxData["player"], mirrored=true)
+    scene.right = newCharacter(gfxData["red_player"], mirrored=true)
   scene.right.getCharacters = getCharacters
   scene.right.pos = GameDim / 2
   scene.right.pos.x = float(GameDim.w - scene.right.sprite.dim.w)
