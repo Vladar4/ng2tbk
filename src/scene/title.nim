@@ -21,8 +21,6 @@ import
 type
   TitleScene = ref object of Scene
     bg: Entity
-    titleText: TextGraphic
-    title: Entity
     player: Character
     gong1P, gong2P, gongExit: Gong
 
@@ -46,13 +44,34 @@ proc init*(scene: TitleScene) =
   scene.add scene.bg
 
   # title
-  scene.titleText = newTextGraphic defaultFont
-  scene.titleText.setText GameTitle
-  scene.title = newEntity()
-  scene.title.graphic = scene.titleText
-  scene.title.centrify HAlign.center, VAlign.top
-  scene.title.pos = (GameDim.w div 2, 32)
-  scene.add scene.title
+  let title = newEntity()
+  title.graphic = newTextGraphic(defaultFont)
+  TextGraphic(title.graphic).setText GameTitle
+  TextGraphic(title.graphic).color = Color(r: 191, g: 0, b: 0, a: 255)
+  title.centrify HAlign.center, VAlign.top
+  title.pos = (GameDim.w div 2, 32)
+  scene.add title
+
+  # info
+  let info = newEntity()
+  info.graphic = newTextGraphic(smallFont)
+  TextGraphic(info.graphic).color = Color(r: 31, g: 31, b: 31, a: 255)
+  TextGraphic(info.graphic).lines = [
+    "Player 1 controls: 'X' and 'Z', Player 2 controls: '<' and '>'",
+    "Hold - walk, Tap - block",
+    "Double tap - hit",
+    "Two-button combo - dodge"
+  ]
+  info.pos = (5.0, 5.0)
+  scene.add info
+
+  # game info
+  let gameInfo = newEntity()
+  gameInfo.graphic = newTextGraphic(smallFont)
+  TextGraphic(gameInfo.graphic).setText GameInfo
+  gameInfo.centrify HAlign.left, VAlign.bottom
+  gameInfo.pos = (5.0, float GameDim.h - 5)
+  scene.add gameInfo
 
   # player
   scene.player = newCharacter(gfxData["player"], player1=true)
@@ -73,6 +92,7 @@ proc init*(scene: TitleScene) =
   let title1P = newEntity()
   title1P.graphic = newTextGraphic defaultFont
   TextGraphic(title1P.graphic).setText "1P"
+  TextGraphic(title1P.graphic).color = Color(r: 225, g: 127, b: 31, a: 255)
   title1P.centrify(HAlign.center, VAlign.bottom)
   title1P.pos = scene.gong1P.pos
   title1P.pos += (90.0, 30.0)
@@ -88,6 +108,7 @@ proc init*(scene: TitleScene) =
   let title2P = newEntity()
   title2P.graphic = newTextGraphic defaultFont
   TextGraphic(title2P.graphic).setText "2P"
+  TextGraphic(title2P.graphic).color = Color(r: 225, g: 127, b: 31, a: 255)
   title2P.centrify(HAlign.center, VAlign.bottom)
   title2P.pos = scene.gong2P.pos
   title2P.pos += (90.0, 30.0)
@@ -103,6 +124,7 @@ proc init*(scene: TitleScene) =
   let titleExit = newEntity()
   titleExit.graphic = newTextGraphic defaultFont
   TextGraphic(titleExit.graphic).setText "Exit"
+  TextGraphic(titleExit.graphic).color = Color(r: 225, g: 127, b: 31, a: 255)
   titleExit.centrify(HAlign.center, VAlign.bottom)
   titleExit.pos = scene.gongExit.pos
   titleExit.pos += (90.0, 30.0)

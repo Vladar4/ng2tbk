@@ -32,7 +32,7 @@ const
 
 var
   introScene*, titleScene*, arenaScene*: Scene
-  defaultFont*: TrueTypeFont
+  defaultFont*, smallFont*: TrueTypeFont
   gfxData*: Assets[TextureGraphic]
   sfxData*: Assets[Sound]
   musData*: Assets[Music]
@@ -49,10 +49,10 @@ var
   player2key* = ControlScheme(
     a: GeneralInput(
       kind: giKeyboard,
-      keyboard: GeneralInputKeyboard(key: ScancodeKp0)),
+      keyboard: GeneralInputKeyboard(key: ScancodePeriod)),
     b: GeneralInput(
       kind: giKeyboard,
-      keyboard: GeneralInputKeyboard(key: ScancodeKpPeriod))
+      keyboard: GeneralInputKeyboard(key: ScancodeComma))
   )
 
 
@@ -60,7 +60,10 @@ proc loadData*() =
   # TODO implement TAR loading
   # Font
   defaultFont = newTrueTypeFont()
-  if not defaultFont.load(DefaultFont, 32):
+  if not defaultFont.load(DefaultFont, 48):
+    write stdout, "ERROR: Can't load font: ", DefaultFont
+  smallFont = newTrueTypeFont()
+  if not smallFont.load(DefaultFont, 24):
     write stdout, "ERROR: Can't load font: ", DefaultFont
   # GFX
   gfxData = newAssets[TextureGraphic]("data/gfx",
