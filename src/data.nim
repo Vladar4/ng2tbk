@@ -1,5 +1,6 @@
 import
   nimgame2 / [
+    plugin/tar,
     assets,
     audio,
     input,
@@ -56,28 +57,52 @@ var
 
 
 proc loadData*() =
-  # TODO implement TAR loading
-  # Font
-  defaultFont = newTrueTypeFont()
-  if not defaultFont.load(DefaultFont, 48):
-    write stdout, "ERROR: Can't load font: ", DefaultFont
-  smallFont = newTrueTypeFont()
-  if not smallFont.load(DefaultFont, 24):
-    write stdout, "ERROR: Can't load font: ", DefaultFont
-  # GFX
-  gfxData = newAssets[TextureGraphic]("data/gfx",
-    proc(file: string): TextureGraphic = newTextureGraphic(file))
-  # SFX
-  sfxData = newAssets[Sound]("data/sfx",
-    proc(file: string): Sound = newSound(file))
-  # MUS TODO
-  #[
-  musData = newAssets[Music]("data/mus",
-    proc(file: string): Music = newMusic(file))
-  playlist = newPlaylist()
-  for track in musData.values:
-    playlist.list.add track
-  ]#
+  var t: TarFile
+  if t.openz "data.tar.gz":
+    # Font
+    defaultFont = newTrueTypeFont()
+    if not defaultFont.load(t.read DefaultFont, 48):
+      write stdout, "ERROR: Can't load font: ", DefaultFont
+    smallFont = newTrueTypeFont()
+    if not smallFont.load(t.read DefaultFont, 24):
+      write stdout, "ERROR: Can't load font: ", DefaultFont
+    # GFX
+    gfxData = newAssets[TextureGraphic](t.contents "data/gfx",
+      proc(file: string): TextureGraphic = newTextureGraphic(t.read file))
+    # SFX
+    sfxData = newAssets[Sound](t.contents "data/sfx",
+      proc(file: string): Sound = newSound(t.read file))
+    # MUS TODO
+    #[
+    musData = newAssets[Music](t.contents "data/mus",
+      proc(file: string): Music = newMusic(t.read file))
+    playlist = newPlaylist()
+    for track in musData.values:
+      playlist.list.add track
+    ]#
+  else:
+    echo "read from data dir"
+    # Font
+    defaultFont = newTrueTypeFont()
+    if not defaultFont.load(DefaultFont, 48):
+      write stdout, "ERROR: Can't load font: ", DefaultFont
+    smallFont = newTrueTypeFont()
+    if not smallFont.load(DefaultFont, 24):
+      write stdout, "ERROR: Can't load font: ", DefaultFont
+    # GFX
+    gfxData = newAssets[TextureGraphic]("data/gfx",
+      proc(file: string): TextureGraphic = newTextureGraphic(file))
+    # SFX
+    sfxData = newAssets[Sound]("data/sfx",
+      proc(file: string): Sound = newSound(file))
+    # MUS TODO
+    #[
+    musData = newAssets[Music]("data/mus",
+      proc(file: string): Music = newMusic(file))
+    playlist = newPlaylist()
+    for track in musData.values:
+      playlist.list.add track
+    ]#
 
 proc freeData*() =
   defaultFont.free()
