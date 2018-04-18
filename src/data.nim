@@ -81,7 +81,6 @@ proc loadData*() =
       playlist.list.add track
     ]#
   else:
-    echo "read from data dir"
     # Font
     defaultFont = newTrueTypeFont()
     if not defaultFont.load(DefaultFont, 48):

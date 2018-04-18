@@ -316,33 +316,39 @@ method update*(character: Character, elapsed: float) =
   of c_backward_stop:
     character.walking = wNone
   of c_low_block:
-    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+    if not (character.sprite.playing and
+            character.sprite.currentAnimationIndex > 2):
       character.walking = wNone
       character.play("low_block_1", 1, callback = characterAnimEnd)
   of c_low_attack:
-    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+    if not (character.sprite.playing and
+            character.sprite.currentAnimationIndex > 2):
       character.walking = wNone
       character.play("low_attack_1", 1, callback = characterAnimEnd)
       sfxData["swing_low"].play().setPanning(
         character.panning[0], character.panning[1])
   of c_high_block:
-    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+    if not (character.sprite.playing and
+            character.sprite.currentAnimationIndex > 2):
       character.walking = wNone
       character.play("high_block_1", 1, callback = characterAnimEnd)
   of c_high_attack:
-    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+    if not (character.sprite.playing and
+            character.sprite.currentAnimationIndex > 2):
       character.walking = wNone
       character.play("high_attack_1", 1, callback = characterAnimEnd)
       sfxData["swing_high"].play().setPanning(
         character.panning[0], character.panning[1])
   of c_low_dodge:
-    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+    if not (character.sprite.playing and
+            character.sprite.currentAnimationIndex > 2):
       character.walking = wNone
       character.dodge()
       sfxData["dodge"].play().setPanning(
         character.panning[0], character.panning[1])
   of c_high_dodge:
-    if not (character.sprite.playing and character.sprite.currentAnimation > 2):
+    if not (character.sprite.playing and
+            character.sprite.currentAnimationIndex > 2):
       character.walking = wNone
       character.dodge(true)
       sfxData["dodge"].play().setPanning(
