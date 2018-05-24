@@ -18,23 +18,30 @@ type
 
 
 const
+  GongLayer = -10
+  GongSpriteSize: Dim = (180, 180)
+  GongFramerate = Framerate * 2
+  GongColliderCenter: Dim = (90, 105)
+  GongColliderRadius = 25
   HitCooldown = Framerate * 6
-  Anim = [[0, 1, 2, 3],
-          [1, 2, 3, 0],
-          [2, 3, 0, 1],
-          [3, 0, 1, 2]]
+  GongAnim = [[0, 1, 2, 3],
+              [1, 2, 3, 0],
+              [2, 3, 0, 1],
+              [3, 0, 1, 2]]
 
 
-proc init*(gong: Gong, graphic: TextureGraphic, anim = 0, command: proc() = nil) =
+proc init*(
+    gong: Gong, graphic: TextureGraphic, anim = 0, command: proc() = nil) =
   gong.initEntity()
   gong.command = command
-  gong.layer = -10
+  gong.layer = GongLayer
   gong.tags.add "gong"
   gong.graphic = graphic
-  gong.initSprite((180, 180))
-  discard gong.addAnimation("idle", Anim[anim], Framerate * 2)
+  gong.initSprite(GongSpriteSize)
+  discard gong.addAnimation("idle", GongAnim[anim], GongFramerate)
   gong.play("idle", -1)
-  gong.collider = newCircleCollider(gong, (90, 105), 25)
+  gong.collider = newCircleCollider(
+    gong, GongColliderCenter, GongColliderRadius)
 
 
 proc newGong*(graphic: TextureGraphic, anim = 0, command: proc() = nil): Gong =

@@ -13,13 +13,14 @@ import
 
 game = newGame()
 if game.init(GameDim.w, GameDim.h, title = GameTitle,
-             bgColor = Color(r: 127, g: 127, b: 127, a: 127)):
+             bgColor = Color(r: 0, g: 0, b: 0, a: 255)):
   # Init
   game.setResizable(true)
   game.minSize = (GameDim.w, GameDim.h)
   game.windowSize = (GameDim * 2)
   game.centrify()
   loadData()
+  game.icon = gameIconSurface
   #colliderOutline = true
   #showInfo = true
   # Scenes

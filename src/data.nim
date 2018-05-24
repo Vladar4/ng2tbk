@@ -1,4 +1,5 @@
 import
+  sdl2/sdl_image,
   nimgame2 / [
     plugin/tar,
     assets,
@@ -19,7 +20,7 @@ type
 
 const
   GameTitle* = "Two-Button Knight"
-  #TODO GameIcon* = "data/"
+  GameIcon* = "data/tbk.png"
   GameVersion* = "0.1"
   GameInfo* = GameTitle & " " & GameVersion & " Copyright © 2018 Vladar"
   GameDim*: Dim = (640, 360)
@@ -31,6 +32,7 @@ const
 
 
 var
+  gameIconSurface*: Surface
   introScene*, titleScene*, arenaScene*: Scene
   defaultFont*, smallFont*: TrueTypeFont
   gfxData*: Assets[TextureGraphic]
@@ -59,6 +61,8 @@ var
 proc loadData*() =
   var t: TarFile
   if t.openz "data.tar.gz":
+    # Icon
+    gameIconSurface = loadRW(t.read GameIcon, true)
     # Font
     defaultFont = newTrueTypeFont()
     if not defaultFont.load(t.read DefaultFont, 48):
@@ -81,6 +85,8 @@ proc loadData*() =
       playlist.list.add track
     ]#
   else:
+    # Icon
+    gameIconSurface = load(GameIcon)
     # Font
     defaultFont = newTrueTypeFont()
     if not defaultFont.load(DefaultFont, 48):
@@ -109,4 +115,6 @@ proc freeData*() =
     gfx.free()
   for sfx in sfxData.values:
     sfx.free()
+  #for mus in musData.values:
+  #  mus.free()
 

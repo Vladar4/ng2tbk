@@ -40,6 +40,7 @@ type
 const
   DefaultHealth* = 10
   HitCooldown = Framerate * 6
+  CharacterSpriteSize: Dim = (180, 120)
   ColliderLowAttack = [(115.0, 55.0), (166.0, 62.0)]
   ColliderLowAttackMirrored = [(13.0, 62.0), (64.0, 55.0)]
   ColliderHighAttack = [(106.0, 44.0), (162.0, 25.0)]
@@ -49,25 +50,30 @@ const
 proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
     player1 = false, player2 = false) =
   character.initEntity()
-  character.tags.add "character"
+
   if player1:
+  # PLAYER 1
     character.tags.add "player"
     character.tags.add "player1"
     character.control = ckPlayer1
+
   elif player2:
+  # PLAYER 2
     character.tags.add "player"
     character.tags.add "player2"
     character.control = ckPlayer2
+
   else:
+  # AI
     character.control = ckAI
 
+  character.tags.add "character"
   character.graphic = graphic
-
   character.mirrored = mirrored
   if mirrored:
     character.flip = Flip.horizontal
 
-  character.initSprite((180, 120))
+  character.initSprite(CharacterSpriteSize)
   discard character.addAnimation(
     "idle", toSeq(0..7), Framerate)
   discard character.addAnimation(
