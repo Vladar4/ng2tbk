@@ -19,6 +19,17 @@ type
     ckPlayer2
     ckAI
 
+  StateKind* = enum
+    skIdle
+    skForward
+    skBackward
+    skLowBlock
+    skHighBlock
+    skLowAttack
+    skHighAttack
+    skLowDodge
+    skHighDodge
+
   WalkingKind* = enum
     wNone
     wForward
@@ -27,8 +38,9 @@ type
   Character* = ref object of Entity
     mirrored: bool
     control*: ControlKind
-    walking*: WalkingKind
     keyBuffer*: KeyBuffer
+    aiBuffer*: seq[Command]
+    state*: StateKind
     cLowAttack, cHighAttack: LineCollider
     health*, maxHealth*: int
     hitCooldown*: float
@@ -45,6 +57,12 @@ const
   ColliderLowAttackMirrored = [(13.0, 62.0), (64.0, 55.0)]
   ColliderHighAttack = [(106.0, 44.0), (162.0, 25.0)]
   ColliderHighAttackMirrored = [(17.0, 25.0), (73.0, 44.0)]
+  AiLowBlock = [cmdB, cmdNone]
+  AiHighBlock = [cmdA, cmdNone]
+  AiLowAttack = [cmdB, cmdB]
+  AiHighAttack = [cmdA, cmdA]
+  AiLowDodge = [cmdB, cmdA]
+  AiHighDodge = [cmdA, cmdB]
 
 
 proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
@@ -66,6 +84,7 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
   else:
   # AI
     character.control = ckAI
+    character.aiBuffer = @[]
 
   character.tags.add "character"
   character.graphic = graphic
@@ -76,30 +95,37 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
   character.initSprite(CharacterSpriteSize)
   discard character.addAnimation(
     "idle", toSeq(0..7), Framerate)
+  # WALK
   discard character.addAnimation(
     "forward", toSeq(8..15), Framerate)
   discard character.addAnimation(
     "backward", toSeq(15..8), Framerate)
+  # LOW BLOCK
   discard character.addAnimation(
-    "low_block_1", toSeq(17..19), Framerate)
+    "low_block_1", toSeq(17..19), Framerate * 1.25)
   discard character.addAnimation(
     "low_block_2", toSeq(20..23), Framerate)
+  # LOW ATTACK
   discard character.addAnimation(
-    "low_attack_1", @[16,17,17,17,18,18,18] & toSeq(24..27), Framerate / 2)
+    "low_attack_1", toSeq(25..27), Framerate)
   discard character.addAnimation(
     "low_attack_2", toSeq(28..31), Framerate)
+  # HIGH BLOCK
   discard character.addAnimation(
-    "high_block_1", toSeq(33..35), Framerate)
+    "high_block_1", toSeq(33..35), Framerate * 1.25)
   discard character.addAnimation(
     "high_block_2", toSeq(36..39), Framerate)
+  # HIGH ATTACK
   discard character.addAnimation(
-    "high_attack_1", @[32,33,33,33,34,34,34] & toSeq(40..43), Framerate / 2)
+    "high_attack_1", toSeq(41..43), Framerate)
   discard character.addAnimation(
     "high_attack_2", toSeq(44..47), Framerate)
+  # DODGE
   discard character.addAnimation(
     "low_dodge", toSeq(48..55), Framerate)
   discard character.addAnimation(
     "high_dodge", toSeq(56..63), Framerate)
+  # DEATH
   discard character.addAnimation(
     "death", toSeq(64..71), Framerate)
   discard character.addAnimation(
@@ -127,7 +153,7 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
     character.cHighAttack = newLineCollider(
       character, ColliderHighAttack[0], ColliderHighAttack[1])
 
-  character.keyBuffer = @[]
+  character.keyBuffer.flush()
 
   character.health = DefaultHealth
   character.maxHealth = DefaultHealth
@@ -166,26 +192,44 @@ proc newCharacter*(graphic: TextureGraphic, mirrored = false,
   init result, graphic, mirrored, player1, player2
 
 
+proc idle(character: Entity) =
+  character.play("idle", -1)
+  Character(character).state = skIdle
+
+
 proc characterAnimEnd(character: Entity, index: int) =
+  let character = Character(character)
+
   if index == character.animationIndex("forward"):
-    if Character(character).mirrored:
+    if character.mirrored:
       character.pos.x -= CharacterOffset
     else:
       character.pos.x += CharacterOffset
+
   elif index == character.animationIndex("backward"):
     discard
+
   # LOW BLOCK
   elif index == character.animationIndex("low_block_1"):
-    character.play("low_block_2", 1, callback = characterAnimEnd)
+    if character.state == skLowAttack:
+      character.play("low_attack_1", 1, callback = characterAnimEnd)
+    else:
+      character.play("low_block_2", 1, callback = characterAnimEnd)
+
   # LOW ATTACK
   elif index == character.animationIndex("low_attack_1"):
     character.play("low_attack_2", 1, callback = characterAnimEnd)
     character.hitCollider()
   elif index == character.animationIndex("low_attack_2"):
     discard
+
   # HIGH BLOCK
   elif index == character.animationIndex("high_block_1"):
-    character.play("high_block_2", 1, callback = characterAnimEnd)
+    if character.state == skHighAttack:
+      character.play("high_attack_1", 1, callback = characterAnimEnd)
+    else:
+      character.play("high_block_2", 1, callback = characterAnimEnd)
+
   # HIGH ATTACK
   elif index == character.animationIndex("high_attack_1"):
     character.play("high_attack_2", 1, callback = characterAnimEnd)
@@ -197,12 +241,12 @@ proc characterAnimEnd(character: Entity, index: int) =
           index == character.animationIndex("high_attack_1")):
     character.resetHitCollider()
 
-  if Character(character).killed:
+  if character.killed:
     character.play("dead", -1)
     return
 
   if not character.sprite.playing:
-    character.play("idle", 0)
+    character.idle()
 
 
 proc walk(character: Character, back = false) =
@@ -223,7 +267,8 @@ proc walk(character: Character, back = false) =
         character.pos + offset, 0, 1, character.getCharacters()) or
        character.isColliding(character.getCharacters()):
       return
-    character.walking = wBackward
+    #character.walking = wBackward
+    character.state = skBackward
     character.pos += offset
     character.play("backward", 1, callback = characterAnimEnd)
   # Forward
@@ -244,7 +289,8 @@ proc walk(character: Character, back = false) =
         if character.pos + offset <= c.pos:
           return
 
-    character.walking = wForward
+    #character.walking = wForward
+    character.state = skForward
     character.play("forward", 1, callback = characterAnimEnd)
 
 
@@ -261,8 +307,10 @@ proc dodge(character: Character, highDodge = false) =
     return
   character.pos += offset
   if highDodge:
+    character.state = skHighDodge
     character.play("high_dodge", 1, callback = characterAnimEnd)
   else:
+    character.state = skLowDodge
     character.play("low_dodge", 1, callback = characterAnimEnd)
 
 
@@ -275,7 +323,7 @@ proc aiTarget(character: Character): Character =
 
 
 proc aiCommand(character: Character): Command =
-  if character.currentAnimationName == "idle":
+  if character.state == skIdle:
     let
       target = character.aiTarget()
       dist = character.pos.distance target.pos
@@ -283,18 +331,27 @@ proc aiCommand(character: Character): Command =
       return
     if dist > CharacterOffset: # too far
       if randBool(0.85):
-        character.walking = wForward
+        character.walk()
       else:
-        character.walking = wBackward
+        character.walk(back = true)
     else: # close enough
-      let cmds = [
-        c_low_block,  # 0
-        c_low_attack, # 1
-        c_high_block, # 2
-        c_high_attack,# 3
-        c_low_dodge,  # 4
-        c_high_dodge] # 5
-      return cmds[randWeighted([4, 1, 4, 1, 2, 2])]
+      if character.aiBuffer.len == 0: # ready for the next move
+        let moves = [
+          AiLowBlock,   # 0
+          AiLowAttack,  # 1
+          AiHighBlock,  # 2
+          AiHighAttack, # 3
+          AiLowDodge,   # 4
+          AiHighDodge]  # 5
+        let nextMove = moves[randWeighted([4, 1, 4, 1, 2, 2])]
+        character.aiBuffer = @nextMove
+
+  if character.aiBuffer.len > 0:
+    # return the next com
+    result = character.aiBuffer[0]
+    character.aiBuffer = character.aiBuffer[1..^1]
+  else:
+    return cmdNone
 
 
 method update*(character: Character, elapsed: float) =
@@ -308,67 +365,69 @@ method update*(character: Character, elapsed: float) =
   elif character.control == ckAI:
     aiCommand character
   else:
-    c_idle
+    cmdNone
 
-  case cmd:
-  of c_forward_start:
-    if character.walking != wForward:
-      character.walk()
-  of c_forward_stop:
-    character.walking = wNone
-  of c_backward_start:
-    if character.walking != wBackward:
-      character.walk(true)
-  of c_backward_stop:
-    character.walking = wNone
-  of c_low_block:
-    if not (character.sprite.playing and
-            character.sprite.currentAnimationIndex > 2):
-      character.walking = wNone
-      character.play("low_block_1", 1, callback = characterAnimEnd)
-  of c_low_attack:
-    if not (character.sprite.playing and
-            character.sprite.currentAnimationIndex > 2):
-      character.walking = wNone
-      character.play("low_attack_1", 1, callback = characterAnimEnd)
-      sfxData["swing_low"].play().setPanning(
-        character.panning[0], character.panning[1])
-  of c_high_block:
-    if not (character.sprite.playing and
-            character.sprite.currentAnimationIndex > 2):
-      character.walking = wNone
+  # update character.state
+  case character.state:
+
+  # IDLE
+  of skIdle:
+    case cmd:
+    of cmdA:
+      character.state = skHighBlock
       character.play("high_block_1", 1, callback = characterAnimEnd)
-  of c_high_attack:
-    if not (character.sprite.playing and
-            character.sprite.currentAnimationIndex > 2):
-      character.walking = wNone
-      character.play("high_attack_1", 1, callback = characterAnimEnd)
-      sfxData["swing_high"].play().setPanning(
-        character.panning[0], character.panning[1])
-  of c_low_dodge:
-    if not (character.sprite.playing and
-            character.sprite.currentAnimationIndex > 2):
-      character.walking = wNone
-      character.dodge()
-      sfxData["dodge"].play().setPanning(
-        character.panning[0], character.panning[1])
-  of c_high_dodge:
-    if not (character.sprite.playing and
-            character.sprite.currentAnimationIndex > 2):
-      character.walking = wNone
-      character.dodge(true)
-      sfxData["dodge"].play().setPanning(
-        character.panning[0], character.panning[1])
-  else:
+    of cmdB:
+      character.state = skLowBlock
+      character.play("low_block_1", 1, callback = characterAnimEnd)
+    else:
+      if character.keyBuffer.holdingA:
+        character.walk()
+      elif character.keyBuffer.holdingB:
+        character.walk(back = true)
+
+  # FORWARD
+  of skForward:
     discard
 
-  if not character.sprite.playing:
-    if character.walking == wForward:
-      character.walk()
-    elif character.walking == wBackward:
-      character.walk(true)
+  # BACKWARD
+  of skBackward:
+    discard
+
+  # LOW BLOCK
+  of skLowBlock:
+    case cmd:
+    of cmdA:
+      character.dodge()
+    of cmdB:
+      character.state = skLowAttack
     else:
-      character.play("idle", 1, callback = characterAnimEnd)
+      discard
+
+  # HIGH BLOCK
+  of skHighBlock:
+    case cmd:
+    of cmdA:
+      character.state = skHighAttack
+    of cmdB:
+      character.dodge(highDodge = true)
+    else:
+      discard
+
+  # LOW ATTACK
+  of skLowAttack:
+    discard
+
+  # HIGH ATTACK
+  of skHighAttack:
+    discard
+
+  # LOW DODGE
+  of skLowDodge:
+    discard
+
+  # HIGH DODGE
+  of skHighDodge:
+    discard
 
   case character.control:
   of ckNone: discard
@@ -381,6 +440,9 @@ method update*(character: Character, elapsed: float) =
 
   if character.hitCooldown > 0:
     character.hitCooldown -= elapsed
+
+  if not character.sprite.playing:
+    character.idle()
 
 
 proc kill*(character: Character) =

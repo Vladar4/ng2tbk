@@ -139,7 +139,6 @@ proc free*(scene: TitleScene) =
 method show*(scene: TitleScene) =
   scene.player.pos.x = 0.0
   flush scene.player.keyBuffer
-  scene.player.play("idle")
   scene.player.resetHitCollider()
 
 
