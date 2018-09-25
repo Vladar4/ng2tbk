@@ -102,7 +102,8 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
     "backward", toSeq(15..8), Framerate)
   # LOW BLOCK
   discard character.addAnimation(
-    "low_block_1", toSeq(17..19), Framerate * 1.25)
+    "low_block_1", toSeq(16..19), Framerate * 1.35)
+    #"low_block_1", @[17,18,19,19], Framerate * 1.35)
   discard character.addAnimation(
     "low_block_2", toSeq(20..23), Framerate)
   # LOW ATTACK
@@ -112,7 +113,8 @@ proc init*(character: Character, graphic: TextureGraphic, mirrored = false,
     "low_attack_2", toSeq(28..31), Framerate)
   # HIGH BLOCK
   discard character.addAnimation(
-    "high_block_1", toSeq(33..35), Framerate * 1.25)
+    "high_block_1", toSeq(32..35), Framerate * 1.35)
+    #"high_block_1", @[33,34,35,35], Framerate * 1.35)
   discard character.addAnimation(
     "high_block_2", toSeq(36..39), Framerate)
   # HIGH ATTACK
